@@ -1,0 +1,20 @@
+package com.specialweek.voucher.service.impl;
+
+import com.specialweek.voucher.domain.SeckillVoucher;
+import com.specialweek.voucher.mapper.SeckillVoucherMapper;
+import com.specialweek.voucher.service.ISeckillVoucherService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.stereotype.Service;
+
+/**
+ * <p>
+ * 秒杀优惠券表，与优惠券是一对一关系 服务实现类
+ * </p>
+ *
+ * @author specialweek
+ * @since 2026-08-15
+ */
+@Service
+public class SeckillVoucherServiceImpl extends ServiceImpl<SeckillVoucherMapper, SeckillVoucher> implements ISeckillVoucherService {
+
+}

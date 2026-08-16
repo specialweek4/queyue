@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author specialweek
  * @since 2026-08-15
  */
-@MapperScan("com.specialweek.mapper")
+@MapperScan({"com.specialweek.user.mapper", "com.specialweek.shop.mapper", "com.specialweek.blog.mapper", "com.specialweek.follow.mapper", "com.specialweek.voucher.mapper"})
 @SpringBootApplication
 public class QuPingQueApplication {
 

@@ -39,7 +39,7 @@
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <scope>runtime</scope>
-            <version>5.1.47</version>
+            <!-- 版本由 Spring Boot 2.3.12 管理（8.0.25），原生支持 MySQL 8 的 caching_sha2_password -->
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
