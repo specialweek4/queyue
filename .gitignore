@@ -5,7 +5,7 @@ target/
 !**/src/test/**/target/
 
 ##Data Config##
-application.yaml
+src/main/resources/application.yaml
 
 ### STS ###
 .apt_generated

@@ -9,7 +9,7 @@ import com.specialweek.shop.service.IShopService;
 import com.specialweek.common.util.SystemConstants;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 
 /**
  * <p>

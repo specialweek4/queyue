@@ -5,7 +5,7 @@ import com.specialweek.user.api.dto.LoginFormDTO;
 import com.specialweek.common.web.Result;
 import com.specialweek.user.domain.User;
 
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSession;
 
 /**
  * <p>

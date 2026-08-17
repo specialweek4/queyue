@@ -10,10 +10,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @MapperScan({"com.specialweek.user.mapper", "com.specialweek.shop.mapper", "com.specialweek.blog.mapper", "com.specialweek.follow.mapper", "com.specialweek.voucher.mapper"})
 @SpringBootApplication
-public class QuPingQueApplication {
+public class QueYueApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(QuPingQueApplication.class, args);
+        SpringApplication.run(QueYueApplication.class, args);
     }
 
 }

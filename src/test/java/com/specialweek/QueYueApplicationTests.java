@@ -7,7 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  * @since 2026-08-15
  */
 @SpringBootTest
-class QuPingQueApplicationTests {
+class QueYueApplicationTests {
 
 
 }
