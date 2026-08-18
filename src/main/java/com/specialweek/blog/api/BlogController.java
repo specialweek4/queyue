@@ -125,7 +125,7 @@ public class BlogController {
         }
         blog.setUserId(user.getId());
         blog.setStatus(0);
-        fillDescription(blog);                     // ← description 操作
+        fillDescription(blog);
         blogService.saveOrUpdate(blog);
         return Result.ok(blog.getId());
     }
@@ -187,5 +187,26 @@ public class BlogController {
             blog.setContentUrl(ossStorageService.publicUrl(blog.getContentObjectKey()));
         }
         return Result.ok(blog);
+    }
+
+    @DeleteMapping("/{id}")
+    public Result delete(@PathVariable("id") long id){
+        long userid = UserHolder.getUser().getId();
+        return blogService.delete(userid, id);
+    }
+
+    @GetMapping("/cleansite")
+    public Result deletelist(@RequestParam(value = "current", defaultValue = "1") Integer current){
+        //TODO增加缓存策略
+        Page<Blog> page = blogService.query()
+                .eq("status", 2)
+                .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
+        List<Blog> records = page.getRecords();
+        records.forEach(blog -> {
+            User u = userService.getById(blog.getUserId());
+            blog.setName(u.getNickName());
+            blog.setIcon(u.getIcon());
+        });
+        return Result.ok(records);
     }
 }

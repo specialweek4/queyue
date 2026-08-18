@@ -2,6 +2,7 @@ package com.specialweek.blog.service;
 
 import com.specialweek.blog.domain.Blog;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.specialweek.common.web.Result;
 
 /**
  * <p>
@@ -13,4 +14,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IBlogService extends IService<Blog> {
 
+    Result delete(long userid, long id);
 }

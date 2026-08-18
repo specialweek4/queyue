@@ -56,7 +56,21 @@ public class OssStorageService {
     }
 
     /**
-     * 删除对象（换图、删草稿时清理）
+     * 同桶复制对象（确认提交：unconfirmed/ 临时区 -> blogs/ 正式区，服务端复制不经过后端流量）
+     * @param sourceKey
+     * @param targetKey
+     */
+    public void copyObject(String sourceKey, String targetKey) {
+        OSS client = newClient();
+        try {
+            client.copyObject(props.getBucketName(), sourceKey, props.getBucketName(), targetKey);
+        } finally {
+            client.shutdown();
+        }
+    }
+
+    /**
+     * 删除对象（仅用于确认提交搬移后清理临时源；删除失败由 unconfirmed/ 生命周期规则兜底）
      * @param objectKey
      */
     public void deleteObject(String objectKey) {
