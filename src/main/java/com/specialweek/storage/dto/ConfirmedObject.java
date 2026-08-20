@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConfirmedObject {
-    /** 正式区对象 key（blogs/...） */
+
     private String objectKey;
-    /** 公开访问 URL */
+
     private String url;
 }

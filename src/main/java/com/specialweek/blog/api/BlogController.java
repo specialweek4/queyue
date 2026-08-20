@@ -1,32 +1,22 @@
 package com.specialweek.blog.api;
 
-
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.specialweek.blog.domain.Blog;
+import com.specialweek.blog.service.IBlogService;
+import com.specialweek.common.util.SystemConstants;
 import com.specialweek.common.web.Result;
 import com.specialweek.storage.OssStorageService;
-import com.specialweek.user.api.dto.UserDTO;
-import com.specialweek.blog.domain.Blog;
 import com.specialweek.user.domain.User;
-import com.specialweek.blog.service.IBlogService;
 import com.specialweek.user.service.IUserService;
-import com.specialweek.common.util.SystemConstants;
-import com.specialweek.user.util.UserHolder;
-import org.springframework.web.bind.annotation.*;
-
 import jakarta.annotation.Resource;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * <p>
- * 前端控制器
- * </p>
- *
- * @author specialweek
- * @since 2026-08-15
- */
 @RestController
 @RequestMapping("/blog")
 public class BlogController {
@@ -39,12 +29,12 @@ public class BlogController {
     private OssStorageService ossStorageService;
 
     @PostMapping
-    public Result saveBlog(@RequestBody Blog blog) {
+    public Result saveBlog(@RequestBody Blog blog, @AuthenticationPrincipal Jwt jwt) {
         if (StrUtil.isBlank(blog.getContentObjectKey())) {
             return Result.fail("请先上传正文");
         }
-        UserDTO user = UserHolder.getUser();
-        blog.setUserId(user.getId());
+        long userId = Long.parseLong(jwt.getSubject());
+        blog.setUserId(userId);
         blog.setStatus(1);
         blog.setPublishTime(LocalDateTime.now());
         fillDescription(blog);
@@ -54,32 +44,26 @@ public class BlogController {
 
     @PutMapping("/like/{id}")
     public Result likeBlog(@PathVariable("id") Long id) {
-        // 修改点赞数量
         blogService.update()
                 .setSql("liked = liked + 1").eq("id", id).update();
         return Result.ok();
     }
 
     @GetMapping("/of/me")
-    public Result queryMyBlog(@RequestParam(value = "current", defaultValue = "1") Integer current) {
-        UserDTO user = UserHolder.getUser();
+    public Result queryMyBlog(@RequestParam(value = "current", defaultValue = "1") Integer current,
+                              @AuthenticationPrincipal Jwt jwt) {
+        long userId = Long.parseLong(jwt.getSubject());
         Page<Blog> page = blogService.query()
-                .eq("user_id", user.getId())
+                .eq("user_id", userId)
                 .orderByDesc("update_time")
                 .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
         return Result.ok(page.getRecords());
     }
 
-    /**
-     * 热门主页
-     * @param current
-     * @return
-     */
     @GetMapping("/hot")
     public Result queryHotBlog(@RequestParam(value = "current", defaultValue = "1") Integer current) {
-        //TODO增加缓存策略
         Page<Blog> page = blogService.query()
-                .eq("status", 1)                                  // ← 对外只给已发布
+                .eq("status", 1)
                 .orderByDesc("liked")
                 .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
         List<Blog> records = page.getRecords();
@@ -91,55 +75,42 @@ public class BlogController {
         return Result.ok(records);
     }
 
-    /**
-     * 看别人的主页
-     * @param id
-     * @param current
-     * @return
-     */
     @GetMapping("/of/user")
     public Result queryBlogOfUser(@RequestParam("id") Long id,
                                   @RequestParam(value = "current", defaultValue = "1") Integer current) {
         Page<Blog> page = blogService.query()
                 .eq("user_id", id)
-                .eq("status", 1)                                  // ← 对外只给已发布
+                .eq("status", 1)
                 .orderByDesc("liked")
                 .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
         return Result.ok(page.getRecords());
     }
 
-    /**
-     * 保存草稿
-     * @param blog
-     * @return
-     */
     @PostMapping("/draft")
-    public Result saveDraft(@RequestBody Blog blog) {
-        UserDTO user = UserHolder.getUser();
-        //这里的设计是如果是创建草稿就不会传blogid，就会直接创建新的，有id的话就看看是不是自己的
+    public Result saveDraft(@RequestBody Blog blog, @AuthenticationPrincipal Jwt jwt) {
+        long userId = Long.parseLong(jwt.getSubject());
         if (blog.getId() != null) {
             Blog old = blogService.getById(blog.getId());
-            if (old == null || !old.getUserId().equals(user.getId())) {
+            if (old == null || !old.getUserId().equals(userId)) {
                 return Result.fail("无权操作该草稿");
             }
         }
-        blog.setUserId(user.getId());
+        blog.setUserId(userId);
         blog.setStatus(0);
         fillDescription(blog);
-        blogService.saveOrUpdate(blog);
+        if (blog.getId() == null) {
+            blogService.save(blog);
+        } else {
+            blogService.updateById(blog);
+        }
         return Result.ok(blog.getId());
     }
 
-    /**
-     * 草稿转发布
-     * @param id
-     * @return
-     */
     @PutMapping("/{id}/publish")
-    public Result publish(@PathVariable("id") Long id) {
-        UserDTO user = UserHolder.getUser();
+    public Result publish(@PathVariable("id") Long id, @AuthenticationPrincipal Jwt jwt) {
+        long userId = Long.parseLong(jwt.getSubject());
         Blog blog = blogService.getById(id);
-        if (blog == null || !blog.getUserId().equals(user.getId())) {
+        if (blog == null || !blog.getUserId().equals(userId)) {
             return Result.fail("无权操作");
         }
         blog.setStatus(1);
@@ -148,41 +119,29 @@ public class BlogController {
         return Result.ok();
     }
 
-    /**
-     * 补充摘要
-     * @param blog
-     */
     private void fillDescription(Blog blog) {
         if (StrUtil.isBlank(blog.getDescription()) && StrUtil.isNotBlank(blog.getContentText())) {
             blog.setDescription(StrUtil.subPre(blog.getContentText().trim(), 50));
         }
     }
 
-    /**
-     * 根据id获取笔记详情
-     * @param id
-     * @return
-     */
     @GetMapping("/detail/{id}")
-    public Result queryBlogById(@PathVariable("id") Long id) {
+    public Result queryBlogById(@PathVariable("id") Long id, @AuthenticationPrincipal Jwt jwt) {
         Blog blog = blogService.getById(id);
         if (blog == null) {
             return Result.fail("笔记不存在");
         }
-        UserDTO user = UserHolder.getUser();
-        // 草稿只有作者可见（放行游客后 user 可能为 null，需判空防 NPE）
-        if (blog.getStatus() != 1 && (user == null || !user.getId().equals(blog.getUserId()))) {
+        Long currentUserId = jwt == null ? null : Long.parseLong(jwt.getSubject());
+        if (blog.getStatus() != 1 && (currentUserId == null || !currentUserId.equals(blog.getUserId()))) {
             return Result.fail("笔记不存在");
         }
-        // 作者信息回填
         User author = userService.getById(blog.getUserId());
         blog.setName(author.getNickName());
         blog.setIcon(author.getIcon());
-        if(user == null){
+        if (currentUserId == null) {
             blog.setIsLike(false);
             blog.setFollowed(false);
         }
-        // 正文：把 objectKey 拼成可访问 URL
         if (StrUtil.isNotBlank(blog.getContentObjectKey())) {
             blog.setContentUrl(ossStorageService.publicUrl(blog.getContentObjectKey()));
         }
@@ -190,14 +149,13 @@ public class BlogController {
     }
 
     @DeleteMapping("/{id}")
-    public Result delete(@PathVariable("id") long id){
-        long userid = UserHolder.getUser().getId();
-        return blogService.delete(userid, id);
+    public Result delete(@PathVariable("id") long id, @AuthenticationPrincipal Jwt jwt) {
+        long userId = Long.parseLong(jwt.getSubject());
+        return blogService.delete(userId, id);
     }
 
     @GetMapping("/cleansite")
-    public Result deletelist(@RequestParam(value = "current", defaultValue = "1") Integer current){
-        //TODO增加缓存策略
+    public Result deletelist(@RequestParam(value = "current", defaultValue = "1") Integer current) {
         Page<Blog> page = blogService.query()
                 .eq("status", 2)
                 .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));

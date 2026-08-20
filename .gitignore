@@ -6,6 +6,7 @@ target/
 
 ##Data Config##
 src/main/resources/application.yaml
+src/main/resources/keys/private.pem
 
 ### STS ###
 .apt_generated

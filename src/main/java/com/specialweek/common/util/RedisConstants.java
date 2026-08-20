@@ -6,9 +6,9 @@ package com.specialweek.common.util;
  */
 public class RedisConstants {
     public static final String LOGIN_CODE_KEY = "login:code:";
+    public static final String LOGIN_REGISTER_KEY = "login:code:register:";
+    public static final String LOGIN_RESET_KEY = "login:code:reset:";
     public static final Long LOGIN_CODE_TTL = 2L;
-    public static final String LOGIN_USER_KEY = "login:token:";
-    public static final Long LOGIN_USER_TTL = 30L;
 
     public static final Long CACHE_NULL_TTL = 2L;
 
