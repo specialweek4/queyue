@@ -2,6 +2,7 @@ package com.specialweek.common.web;
 
 import com.specialweek.auth.exception.AuthException;
 import com.specialweek.common.web.Result;
+import com.specialweek.limiter.exception.RateLimitException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -22,6 +23,11 @@ public class WebExceptionAdvice {
 
     @ExceptionHandler(AuthException.class)
     public Result handleAuthException(AuthException e) {
+        return Result.fail(e.getMessage());
+    }
+
+    @ExceptionHandler(RateLimitException.class)
+    public Result handleRateLimitException(RateLimitException e) {
         return Result.fail(e.getMessage());
     }
 }

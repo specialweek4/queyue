@@ -6,6 +6,7 @@ import com.specialweek.blog.domain.Blog;
 import com.specialweek.blog.service.IBlogService;
 import com.specialweek.common.util.SystemConstants;
 import com.specialweek.common.web.Result;
+import com.specialweek.limiter.annotation.RateLimiter;
 import com.specialweek.storage.OssStorageService;
 import com.specialweek.user.domain.User;
 import com.specialweek.user.service.IUserService;
@@ -87,6 +88,13 @@ public class BlogController {
     }
 
     @PostMapping("/draft")
+    @RateLimiter(
+            key = "save:draft:",
+            window = 60,
+            limit = 3,
+            message = "操作过于频繁，请稍后再试",
+            type = RateLimiter.LimitType.USER
+    )
     public Result saveDraft(@RequestBody Blog blog, @AuthenticationPrincipal Jwt jwt) {
         long userId = Long.parseLong(jwt.getSubject());
         if (blog.getId() != null) {
