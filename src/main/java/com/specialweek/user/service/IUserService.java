@@ -13,4 +13,6 @@ public interface IUserService extends IService<User> {
     Result sign(Long userId);
 
     Result signCount(Long userId);
+
+    void registerUser(User user);
 }

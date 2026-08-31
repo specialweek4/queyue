@@ -3,6 +3,7 @@ package com.specialweek.blog.service;
 import com.specialweek.blog.domain.Blog;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.specialweek.common.web.Result;
+import com.specialweek.common.web.ScrollResult;
 
 /**
  * <p>
@@ -15,4 +16,6 @@ import com.specialweek.common.web.Result;
 public interface IBlogService extends IService<Blog> {
 
     Result delete(long userid, long id);
+
+    ScrollResult queryFeedOfFollow(long userId, long lastIdMillis, int offset);
 }

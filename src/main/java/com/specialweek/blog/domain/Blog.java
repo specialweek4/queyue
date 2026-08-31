@@ -38,9 +38,11 @@ public class Blog implements Serializable {
     @TableField(exist = false) private Boolean isLike;
     @TableField(exist = false) private String contentText;
     @TableField(exist = false) private String contentUrl;
-    @TableField(exist = false) private List<UserDTO> likes;     // 点赞用户列表（游客也有，属于公开信息）
-    @TableField(exist = false) private Boolean followed;        // 是否已关注作者（仅登录返回）
+    @TableField(exist = false) private List<UserDTO> likes;
+    @TableField(exist = false) private Boolean followed;
+    @TableField(exist = false) private Boolean faved;
 
+    private Integer favorites;
     private String title;
     private String description;
     private String images;

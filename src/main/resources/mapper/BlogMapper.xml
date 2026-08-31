@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.specialweek.blog.mapper.BlogMapper">
+
+    <update id="updateCounterCheckpoint">
+        UPDATE tb_blog
+        SET liked = #{likeCount},
+            favorites = #{favoriteCount}
+        WHERE id = #{blogId}
+    </update>
+
+    <select id="selectFeedOfFollow" resultType="com.specialweek.blog.domain.Blog">
+        SELECT b.*
+        FROM tb_blog b
+        WHERE b.status = 1
+          AND b.user_id IN (
+              SELECT f.follow_user_id FROM tb_follow f WHERE f.user_id = #{userId}
+          )
+          AND b.publish_time &lt; #{maxTime}
+        ORDER BY b.publish_time DESC, b.id DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="selectHotFeed" resultType="com.specialweek.blog.model.BlogFeedRow">
+        SELECT
+            b.id,
+            b.user_id AS userId,
+            b.title,
+            b.description,
+            b.images,
+            b.cover_url AS coverUrl,
+            b.comments,
+            b.publish_time AS publishTime,
+            u.nick_name AS name,
+            u.icon
+        FROM tb_blog b
+        JOIN tb_user u ON u.id = b.user_id
+        WHERE b.status = 1
+        ORDER BY b.liked DESC, b.publish_time DESC, b.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+</mapper>

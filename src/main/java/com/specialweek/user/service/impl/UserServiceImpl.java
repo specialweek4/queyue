@@ -6,6 +6,8 @@ import com.specialweek.common.util.RedisConstants;
 import com.specialweek.common.web.Result;
 import com.specialweek.user.api.dto.SignCountResponse;
 import com.specialweek.user.domain.User;
+import com.specialweek.user.domain.UserInfo;
+import com.specialweek.user.mapper.UserInfoMapper;
 import com.specialweek.user.mapper.UserMapper;
 import com.specialweek.user.service.IUserService;
 import com.specialweek.user.util.RegexUtils;
@@ -15,6 +17,7 @@ import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -27,6 +30,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private UserInfoMapper userInfoMapper;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void registerUser(User user) {
+        save(user);
+        UserInfo info = new UserInfo();
+        info.setUserId(user.getId());
+        info.setCity("");
+        info.setFans(0);
+        info.setFollowee(0);
+        info.setCredits(0);
+        info.setGender(false);
+        info.setLevel(false);
+        userInfoMapper.insert(info);
+    }
 
     @Override
     public Result sendCode(String phone, String scene, HttpSession session) {

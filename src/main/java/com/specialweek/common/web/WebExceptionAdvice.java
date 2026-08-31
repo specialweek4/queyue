@@ -21,6 +21,11 @@ public class WebExceptionAdvice {
         return Result.fail("服务器异常");
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public Result handleIllegalArgumentException(IllegalArgumentException e) {
+        return Result.fail(e.getMessage() == null ? "参数错误" : e.getMessage());
+    }
+
     @ExceptionHandler(AuthException.class)
     public Result handleAuthException(AuthException e) {
         return Result.fail(e.getMessage());

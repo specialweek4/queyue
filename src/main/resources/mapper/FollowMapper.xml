@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.specialweek.follow.mapper.FollowMapper">
+
+    <insert id="insertIgnore">
+        INSERT IGNORE INTO tb_follow (user_id, follow_user_id)
+        VALUES (#{userId}, #{followUserId})
+    </insert>
+
+    <delete id="deleteRelation">
+        DELETE FROM tb_follow
+        WHERE user_id = #{userId} AND follow_user_id = #{followUserId}
+    </delete>
+
+    <select id="isFollowing" resultType="java.lang.Boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM tb_follow
+            WHERE user_id = #{userId} AND follow_user_id = #{targetUserId}
+        )
+    </select>
+
+    <select id="selectFollowedUserIds" resultType="java.lang.Long">
+        SELECT follow_user_id
+        FROM tb_follow
+        WHERE user_id = #{userId}
+          AND follow_user_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectCommonFollows" resultType="com.specialweek.user.api.dto.UserDTO">
+        SELECT u.id, u.nick_name AS nickName, u.icon
+        FROM tb_follow f1
+        JOIN tb_follow f2 ON f2.follow_user_id = f1.follow_user_id
+        JOIN tb_user u ON u.id = f1.follow_user_id
+        WHERE f1.user_id = #{userId}
+          AND f2.user_id = #{targetUserId}
+        ORDER BY f1.create_time DESC
+        LIMIT 20
+    </select>
+
+</mapper>

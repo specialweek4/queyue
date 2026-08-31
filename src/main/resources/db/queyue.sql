@@ -10,7 +10,8 @@ CREATE TABLE `tb_blog` (
     `user_id` bigint unsigned NOT NULL COMMENT '用户id',
     `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标题',
     `images` varchar(2048) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '探店的照片，最多9张，多张以","隔开',
-    `liked` int unsigned DEFAULT '0' COMMENT '点赞数量',
+    `liked` int unsigned NOT NULL DEFAULT '0' COMMENT '点赞数量',
+    `favorites` int unsigned NOT NULL DEFAULT '0',
     `comments` int unsigned DEFAULT NULL COMMENT '评论数量',
     `status` tinyint NOT NULL DEFAULT '1' COMMENT '0=草稿 1=已发布',
     `cover_url` varchar(512) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '封面图 OSS URL',
@@ -57,7 +58,10 @@ CREATE TABLE `tb_follow`  (
   `user_id` bigint(20) UNSIGNED NOT NULL COMMENT '用户id',
   `follow_user_id` bigint(20) UNSIGNED NOT NULL COMMENT '关联的用户id',
   `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (`id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_follow_user_target` (`user_id`, `follow_user_id`) USING BTREE,
+  KEY `idx_follow_user_time` (`user_id`, `create_time`, `id`) USING BTREE,
+  KEY `idx_follow_target_time` (`follow_user_id`, `create_time`, `id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
@@ -202,8 +206,8 @@ CREATE TABLE `tb_user_info`  (
   `user_id` bigint(20) UNSIGNED NOT NULL COMMENT '主键，用户id',
   `city` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '' COMMENT '城市名称',
   `introduce` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '个人介绍，不要超过128个字符',
-  `fans` int(8) UNSIGNED NULL DEFAULT 0 COMMENT '粉丝数量',
-  `followee` int(8) UNSIGNED NULL DEFAULT 0 COMMENT '关注的人的数量',
+  `fans` int(8) UNSIGNED NOT NULL DEFAULT 0 COMMENT '粉丝数量',
+  `followee` int(8) UNSIGNED NOT NULL DEFAULT 0 COMMENT '关注的人的数量',
   `gender` tinyint(1) UNSIGNED NULL DEFAULT 0 COMMENT '性别，0：男，1：女',
   `birthday` date NULL DEFAULT NULL COMMENT '生日',
   `credits` int(8) UNSIGNED NULL DEFAULT 0 COMMENT '积分',

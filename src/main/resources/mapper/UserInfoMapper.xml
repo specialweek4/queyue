@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.specialweek.user.mapper.UserInfoMapper">
+
+    <insert id="ensureRows">
+        INSERT IGNORE INTO tb_user_info (user_id, fans, followee)
+        VALUES (#{userId}, 0, 0), (#{targetUserId}, 0, 0)
+    </insert>
+
+    <update id="incrementFollowee">
+        UPDATE tb_user_info SET followee = followee + 1 WHERE user_id = #{userId}
+    </update>
+
+    <update id="incrementFans">
+        UPDATE tb_user_info SET fans = fans + 1 WHERE user_id = #{userId}
+    </update>
+
+    <update id="decrementFollowee">
+        UPDATE tb_user_info SET followee = followee - 1
+        WHERE user_id = #{userId} AND followee &gt; 0
+    </update>
+
+    <update id="decrementFans">
+        UPDATE tb_user_info SET fans = fans - 1
+        WHERE user_id = #{userId} AND fans &gt; 0
+    </update>
+
+</mapper>

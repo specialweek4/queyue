@@ -66,7 +66,7 @@ public class AuthService {
         user.setPhone(request.phone());
         user.setNickName(USER_NICK_NAME_PREFIX + RandomUtil.randomString(10));
         user.setPassword(passwordEncoder.encode(request.password()));
-        userService.save(user);
+        userService.registerUser(user);
 
         return issueAndStore(user);
     }
