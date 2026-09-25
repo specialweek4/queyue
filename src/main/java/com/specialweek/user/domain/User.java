@@ -1,6 +1,7 @@
 package com.specialweek.user.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -9,6 +10,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 /**
  * <p>
@@ -42,6 +44,8 @@ public class User implements Serializable {
      */
     private String password;
 
+    private Integer role;
+
     /**
      * 昵称，默认是随机字符
      */
@@ -50,7 +54,21 @@ public class User implements Serializable {
     /**
      * 用户头像
      */
-    private String icon = "";
+    private String avatar;
+
+    private String email;
+
+    private String bio;
+
+    private String qyId;
+
+    private String gender;
+
+    private LocalDate birthday;
+
+    private String school;
+
+    private String tagsJson;
 
     /**
      * 创建时间
@@ -62,5 +80,15 @@ public class User implements Serializable {
      */
     private LocalDateTime updateTime;
 
+    @TableField(exist = false)
+    private Integer fans;
 
+    @TableField(exist = false)
+    private Integer followee;
+
+    @TableField(exist = false)
+    private Integer credits;
+
+    @TableField(exist = false)
+    private Integer level;
 }

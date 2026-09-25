@@ -1,3 +1,9 @@
+-- MySQL dump 10.13  Distrib 8.0.43, for Win64 (x86_64)
+--
+-- Host: 127.0.0.1    Database: qupingque
+-- ------------------------------------------------------
+-- Server version	8.0.43
+
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
@@ -10,10 +16,29 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `tb_audit_record`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tb_audit_record` (
+                                   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+                                   `target_type` varchar(40) NOT NULL COMMENT 'SHOP/PRODUCT',
+                                   `target_id` bigint unsigned NOT NULL,
+                                   `from_status` tinyint unsigned DEFAULT NULL,
+                                   `to_status` tinyint unsigned NOT NULL,
+                                   `operator_user_id` bigint unsigned NOT NULL,
+                                   `reason` varchar(512) DEFAULT NULL,
+                                   `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                   PRIMARY KEY (`id`),
+                                   KEY `idx_audit_target` (`target_type`,`target_id`,`create_time`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `tb_blog`
 --
 
-DROP TABLE IF EXISTS `tb_blog`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tb_blog` (
@@ -31,7 +56,8 @@ CREATE TABLE `tb_blog` (
                            `description` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '摘要/描述，最多50字',
                            `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                            `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                           PRIMARY KEY (`id`) USING BTREE
+                           PRIMARY KEY (`id`) USING BTREE,
+                           KEY `idx_blog_public_time` (`status`,`publish_time`,`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=COMPACT;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -39,7 +65,6 @@ CREATE TABLE `tb_blog` (
 -- Table structure for table `tb_blog_comments`
 --
 
-DROP TABLE IF EXISTS `tb_blog_comments`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tb_blog_comments` (
@@ -58,10 +83,49 @@ CREATE TABLE `tb_blog_comments` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `tb_blog_favorite`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tb_blog_favorite` (
+                                    `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+                                    `user_id` bigint unsigned NOT NULL,
+                                    `blog_id` bigint unsigned NOT NULL,
+                                    `state` tinyint NOT NULL DEFAULT '1' COMMENT '1=当前收藏，0=已取消',
+                                    `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                    `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                    PRIMARY KEY (`id`),
+                                    UNIQUE KEY `uk_blog_favorite_user_blog` (`user_id`,`blog_id`),
+                                    KEY `idx_blog_favorite_user_state_time` (`user_id`,`state`,`update_time`,`id`),
+                                    KEY `idx_blog_favorite_blog_state_time` (`blog_id`,`state`,`update_time`,`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tb_blog_like`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tb_blog_like` (
+                                `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+                                `user_id` bigint unsigned NOT NULL,
+                                `blog_id` bigint unsigned NOT NULL,
+                                `state` tinyint NOT NULL DEFAULT '1' COMMENT '1=当前点赞，0=已取消',
+                                `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                PRIMARY KEY (`id`),
+                                UNIQUE KEY `uk_blog_like_user_blog` (`user_id`,`blog_id`),
+                                KEY `idx_blog_like_user_state_time` (`user_id`,`state`,`update_time`,`id`),
+                                KEY `idx_blog_like_blog_state_time` (`blog_id`,`state`,`update_time`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `tb_follow`
 --
 
-DROP TABLE IF EXISTS `tb_follow`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tb_follow` (
@@ -77,10 +141,84 @@ CREATE TABLE `tb_follow` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `tb_product`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tb_product` (
+                              `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+                              `shop_id` bigint unsigned NOT NULL,
+                              `created_by` bigint unsigned NOT NULL COMMENT '店主用户id',
+                              `name` varchar(128) NOT NULL COMMENT '商品名称',
+                              `description` varchar(1024) DEFAULT NULL COMMENT '商品描述',
+                              `images` varchar(2048) DEFAULT NULL COMMENT '商品图片，逗号分隔',
+                              `price` bigint unsigned NOT NULL COMMENT '售价，单位分',
+                              `stock` int unsigned NOT NULL DEFAULT '0',
+                              `favorites` int unsigned NOT NULL DEFAULT '0' COMMENT '商品收藏数检查点',
+                              `status` tinyint unsigned NOT NULL DEFAULT '2' COMMENT '1上架，2下架，3售罄',
+                              `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                              `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                              PRIMARY KEY (`id`),
+                              KEY `idx_product_shop_status` (`shop_id`,`status`),
+                              KEY `idx_product_creator` (`created_by`),
+                              KEY `idx_product_feed` (`status`,`update_time`,`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tb_product_application`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tb_product_application` (
+                                          `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+                                          `applicant_user_id` bigint unsigned NOT NULL,
+                                          `shop_id` bigint unsigned NOT NULL COMMENT '正式店铺id',
+                                          `name` varchar(128) NOT NULL,
+                                          `description` varchar(1024) DEFAULT NULL,
+                                          `images` varchar(2048) DEFAULT NULL,
+                                          `price` bigint unsigned NOT NULL COMMENT '售价，单位分',
+                                          `stock` int unsigned NOT NULL DEFAULT '0',
+                                          `audit_status` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '0待审核，1通过，2拒绝',
+                                          `reject_reason` varchar(512) DEFAULT NULL,
+                                          `audited_by` bigint unsigned DEFAULT NULL,
+                                          `audited_time` timestamp NULL DEFAULT NULL,
+                                          `approved_product_id` bigint unsigned DEFAULT NULL,
+                                          `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                          `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                          PRIMARY KEY (`id`),
+                                          KEY `idx_product_applicant_status` (`applicant_user_id`,`audit_status`,`create_time`),
+                                          KEY `idx_product_application_status` (`audit_status`,`create_time`),
+                                          KEY `idx_product_application_shop` (`shop_id`,`audit_status`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tb_product_favorite`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tb_product_favorite` (
+                                       `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+                                       `user_id` bigint unsigned NOT NULL,
+                                       `product_id` bigint unsigned NOT NULL,
+                                       `state` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '1=当前收藏，0=已取消',
+                                       `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                       `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                       PRIMARY KEY (`id`),
+                                       UNIQUE KEY `uk_product_favorite_user_product` (`user_id`,`product_id`),
+                                       KEY `idx_product_favorite_user_state_time` (`user_id`,`state`,`update_time`,`id`),
+                                       KEY `idx_product_favorite_product_state` (`product_id`,`state`,`update_time`,`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `tb_seckill_voucher`
 --
 
-DROP TABLE IF EXISTS `tb_seckill_voucher`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tb_seckill_voucher` (
@@ -98,18 +236,19 @@ CREATE TABLE `tb_seckill_voucher` (
 -- Table structure for table `tb_shop`
 --
 
-DROP TABLE IF EXISTS `tb_shop`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tb_shop` (
                            `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+                           `owner_user_id` bigint unsigned DEFAULT NULL COMMENT '店主用户id',
+                           `business_status` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '1营业中，2暂停营业，3永久关闭',
                            `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '商铺名称',
                            `type_id` bigint unsigned NOT NULL COMMENT '商铺类型的id',
                            `images` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '商铺图片，多个图片以'',''隔开',
                            `area` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '商圈，例如陆家嘴',
                            `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '地址',
-                           `x` double unsigned NOT NULL COMMENT '经度',
-                           `y` double unsigned NOT NULL COMMENT '维度',
+                           `x` decimal(10,7) NOT NULL COMMENT '经度',
+                           `y` decimal(10,7) NOT NULL COMMENT '纬度',
                            `avg_price` bigint unsigned DEFAULT NULL COMMENT '均价，取整数',
                            `sold` int(10) unsigned zerofill NOT NULL COMMENT '销量',
                            `comments` int(10) unsigned zerofill NOT NULL COMMENT '评论数量',
@@ -118,15 +257,50 @@ CREATE TABLE `tb_shop` (
                            `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                            `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                            PRIMARY KEY (`id`) USING BTREE,
-                           KEY `foreign_key_type` (`type_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=COMPACT;
+                           UNIQUE KEY `uk_shop_owner` (`owner_user_id`),
+                           KEY `foreign_key_type` (`type_id`) USING BTREE,
+                           KEY `idx_shop_owner` (`owner_user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=COMPACT;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tb_shop_application`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tb_shop_application` (
+                                       `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+                                       `apply_type` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '0新建商铺申请，1商铺资料修改申请',
+                                       `applicant_user_id` bigint unsigned NOT NULL,
+                                       `target_shop_id` bigint unsigned DEFAULT NULL COMMENT '修改申请对应的正式店铺id，新建申请为NULL',
+                                       `name` varchar(128) NOT NULL,
+                                       `type_id` bigint unsigned NOT NULL,
+                                       `images` varchar(1024) NOT NULL,
+                                       `area` varchar(128) DEFAULT NULL,
+                                       `address` varchar(255) NOT NULL,
+                                       `x` decimal(10,7) DEFAULT NULL COMMENT '经度，由审核人员补齐',
+                                       `y` decimal(10,7) DEFAULT NULL COMMENT '纬度，由审核人员补齐',
+                                       `avg_price` bigint unsigned DEFAULT NULL,
+                                       `open_hours` varchar(32) DEFAULT NULL,
+                                       `audit_status` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '0待审核，1通过，2拒绝',
+                                       `reject_reason` varchar(512) DEFAULT NULL,
+                                       `audited_by` bigint unsigned DEFAULT NULL,
+                                       `audited_time` timestamp NULL DEFAULT NULL,
+                                       `approved_shop_id` bigint unsigned DEFAULT NULL,
+                                       `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                       `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                       PRIMARY KEY (`id`),
+                                       KEY `idx_shop_applicant_status` (`applicant_user_id`,`audit_status`,`create_time`),
+                                       KEY `idx_shop_application_status` (`audit_status`,`create_time`),
+                                       KEY `idx_shop_apply_target` (`target_shop_id`,`audit_status`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `tb_shop_type`
 --
 
-DROP TABLE IF EXISTS `tb_shop_type`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tb_shop_type` (
@@ -144,7 +318,6 @@ CREATE TABLE `tb_shop_type` (
 -- Table structure for table `tb_sign`
 --
 
-DROP TABLE IF EXISTS `tb_sign`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tb_sign` (
@@ -162,55 +335,42 @@ CREATE TABLE `tb_sign` (
 -- Table structure for table `tb_user`
 --
 
-DROP TABLE IF EXISTS `tb_user`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tb_user` (
                            `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
                            `phone` varchar(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '手机号码',
                            `password` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '密码，加密存储',
+                           `role` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '角色：0普通用户，1商家，9管理员',
                            `nick_name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '昵称，默认是用户id',
-                           `icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '人物头像',
+                           `avatar` varchar(255) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '用户头像',
                            `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                            `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                           `email` varchar(128) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '邮箱',
+                           `bio` varchar(512) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '个人简介',
+                           `qy_id` varchar(64) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '知光号',
+                           `gender` varchar(16) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '性别',
+                           `birthday` date DEFAULT NULL COMMENT '生日',
+                           `school` varchar(128) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '学校',
+                           `tags_json` json DEFAULT NULL COMMENT '用户标签',
                            PRIMARY KEY (`id`) USING BTREE,
-                           UNIQUE KEY `uniqe_key_phone` (`phone`) USING BTREE
+                           UNIQUE KEY `uk_users_phone` (`phone`),
+                           UNIQUE KEY `uk_users_email` (`email`),
+                           UNIQUE KEY `uk_users_zg_id` (`qy_id`),
+                           KEY `idx_user_role` (`role`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1014 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=COMPACT;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tb_user_info`
---
-
-DROP TABLE IF EXISTS `tb_user_info`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `tb_user_info` (
-                                `user_id` bigint unsigned NOT NULL COMMENT '主键，用户id',
-                                `city` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '' COMMENT '城市名称',
-                                `introduce` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '个人介绍，不要超过128个字符',
-                                `fans` int unsigned NOT NULL DEFAULT '0',
-                                `followee` int unsigned NOT NULL DEFAULT '0',
-                                `gender` tinyint unsigned DEFAULT '0' COMMENT '性别，0：男，1：女',
-                                `birthday` date DEFAULT NULL COMMENT '生日',
-                                `credits` int unsigned DEFAULT '0' COMMENT '积分',
-                                `level` tinyint unsigned DEFAULT '0' COMMENT '会员级别，0~9级,0代表未开通会员',
-                                `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                PRIMARY KEY (`user_id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=COMPACT;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `tb_voucher`
 --
 
-DROP TABLE IF EXISTS `tb_voucher`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tb_voucher` (
                               `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
                               `shop_id` bigint unsigned DEFAULT NULL COMMENT '商铺id',
+                              `created_by` bigint unsigned DEFAULT NULL COMMENT '创建优惠券的店主用户id',
                               `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '代金券标题',
                               `sub_title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '副标题',
                               `rules` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '使用规则',
@@ -220,7 +380,10 @@ CREATE TABLE `tb_voucher` (
                               `status` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '1,上架; 2,下架; 3,过期',
                               `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                               `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                              PRIMARY KEY (`id`) USING BTREE
+                              `product_id` bigint unsigned DEFAULT NULL COMMENT '可选，适用商品id',
+                              PRIMARY KEY (`id`) USING BTREE,
+                              KEY `idx_voucher_creator` (`created_by`),
+                              KEY `idx_voucher_product` (`product_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=COMPACT;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -228,7 +391,6 @@ CREATE TABLE `tb_voucher` (
 -- Table structure for table `tb_voucher_order`
 --
 
-DROP TABLE IF EXISTS `tb_voucher_order`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tb_voucher_order` (
@@ -255,4 +417,4 @@ CREATE TABLE `tb_voucher_order` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-02 20:47:06
+-- Dump completed on 2026-09-21 20:01:15

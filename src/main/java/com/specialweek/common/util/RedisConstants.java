@@ -8,6 +8,7 @@ public class RedisConstants {
     public static final String LOGIN_CODE_KEY = "login:code:";
     public static final String LOGIN_REGISTER_KEY = "login:code:register:";
     public static final String LOGIN_RESET_KEY = "login:code:reset:";
+    public static final String CACHE_SHOP_TYPE_KEY = "cache:shopType:";
     public static final Long LOGIN_CODE_TTL = 2L;
 
     public static final Long CACHE_NULL_TTL = 2L;
@@ -23,4 +24,8 @@ public class RedisConstants {
     public static final String FEED_KEY = "feed:";
     public static final String SHOP_GEO_KEY = "shop:geo:";
     public static final String USER_SIGN_KEY = "sign:";
+    public static final String LOGIN_USER_KEY = "login:token:";
+    public static final Long LOGIN_USER_TTL = 36000L;
+    public static final String CACHE_VOUCHER_LIST_KEY = "cache:voucher:list:";
+    public static final String CACHE_PRODUCT_LIST_KEY = "cache:product:list:";
 }

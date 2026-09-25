@@ -33,6 +33,10 @@ public class Shop implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
+    private Long ownerUserId;
+
+    private Integer businessStatus = 1;
+
     /**
      * 商铺名称
      */
@@ -61,12 +65,12 @@ public class Shop implements Serializable {
     /**
      * 经度
      */
-    private Double x;
+    private java.math.BigDecimal x;
 
     /**
      * 维度
      */
-    private Double y;
+    private java.math.BigDecimal y;
 
     /**
      * 均价，取整数

@@ -9,11 +9,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -25,6 +28,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtDecoder accessJwtDecoder;
@@ -38,8 +42,25 @@ public class SecurityConfig {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * 配置接口访问权限和 JWT 认证。
+     * @param http
+     * @return
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            Object roleClaim = jwt.getClaim("role");
+            int role = roleClaim instanceof Number number ? number.intValue() : 0;
+            String authority = switch (role) {
+                case 9 -> "ROLE_ADMIN";
+                case 1 -> "ROLE_MERCHANT";
+                default -> "ROLE_USER";
+            };
+            return List.of(new SimpleGrantedAuthority(authority));
+        });
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
@@ -60,9 +81,17 @@ public class SecurityConfig {
                                 "/shop/**",
                                 "/shop-type/**",
                                 "/voucher/**",
+                                "/product/feed",
+                                "/product/*",
+                                "/product/list/*",
                                 "/blog/hot",
                                 "/blog/detail/*"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/merchant/shop-applications").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/merchant/shop-applications/mine").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/merchant/shop-applications/*").authenticated()
+                        .requestMatchers("/merchant/**").hasAnyRole("MERCHANT", "ADMIN")
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(errors -> errors
@@ -72,7 +101,9 @@ public class SecurityConfig {
                                 writeError(response, 403, "没有访问权限"))
                 )
                 .oauth2ResourceServer(oauth -> oauth
-                        .jwt(jwt -> jwt.decoder(accessJwtDecoder))
+                        .jwt(jwt -> jwt
+                                .decoder(accessJwtDecoder)
+                                .jwtAuthenticationConverter(converter))
                         .authenticationEntryPoint((request, response, exception) ->
                                 writeError(response, 401, "access token 无效或已过期"))
                 );

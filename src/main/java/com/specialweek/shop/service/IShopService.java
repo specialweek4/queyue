@@ -1,5 +1,6 @@
 package com.specialweek.shop.service;
 
+import com.specialweek.common.web.Result;
 import com.specialweek.shop.domain.Shop;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -12,5 +13,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @since 2026-08-15
  */
 public interface IShopService extends IService<Shop> {
-
+    Result queryById(Long id);
 }

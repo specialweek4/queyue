@@ -1,9 +1,14 @@
 package com.specialweek.common.web;
 
 import com.specialweek.auth.exception.AuthException;
+import com.specialweek.common.except.BusinessException;
 import com.specialweek.common.web.Result;
 import com.specialweek.limiter.exception.RateLimitException;
+import com.specialweek.storage.exception.StorageException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -33,6 +38,29 @@ public class WebExceptionAdvice {
 
     @ExceptionHandler(RateLimitException.class)
     public Result handleRateLimitException(RateLimitException e) {
+        return Result.fail(e.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Result handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+        FieldError fieldError = e.getBindingResult().getFieldError();
+        String message = fieldError == null ? "参数校验失败"
+                : fieldError.getField() + " " + fieldError.getDefaultMessage();
+        return Result.fail(message == null ? "参数校验失败" : message);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public Result handleAccessDeniedException(AccessDeniedException e) {
+        return Result.fail("没有访问权限");
+    }
+
+    @ExceptionHandler(StorageException.class)
+    public Result handleStorageException(StorageException e) {
+        return Result.fail(e.getMessage());
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public Result handleStorageException(BusinessException e) {
         return Result.fail(e.getMessage());
     }
 }

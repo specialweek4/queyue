@@ -2,12 +2,12 @@ package com.specialweek.user.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.specialweek.common.except.BusinessException;
 import com.specialweek.common.util.RedisConstants;
 import com.specialweek.common.web.Result;
 import com.specialweek.user.api.dto.SignCountResponse;
+import com.specialweek.user.api.dto.UserDTO;
 import com.specialweek.user.domain.User;
-import com.specialweek.user.domain.UserInfo;
-import com.specialweek.user.mapper.UserInfoMapper;
 import com.specialweek.user.mapper.UserMapper;
 import com.specialweek.user.service.IUserService;
 import com.specialweek.user.util.RegexUtils;
@@ -32,21 +32,68 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     private StringRedisTemplate stringRedisTemplate;
 
     @Resource
-    private UserInfoMapper userInfoMapper;
+    private UserMapper userMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void registerUser(User user) {
         save(user);
-        UserInfo info = new UserInfo();
-        info.setUserId(user.getId());
-        info.setCity("");
-        info.setFans(0);
-        info.setFollowee(0);
-        info.setCredits(0);
-        info.setGender(false);
-        info.setLevel(false);
-        userInfoMapper.insert(info);
+    }
+
+    @Override
+    public UserDTO updateAvatar(long userId, String avatarUrl) {
+        User current = userMapper.findById(userId);
+        if (current == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        // 仅更新头像字段
+        User patch = new User();
+        patch.setId(userId);
+        patch.setAvatar(avatarUrl);
+        userMapper.updateProfile(patch);
+
+        // 更新后回读，保证返回最新头像地址
+        User updated = userMapper.findById(userId);
+        return toResponseWithCounts(updated);
+    }
+
+    @Override
+    public UserDTO profile(long userId) {
+        User user = userMapper.findById(userId);
+        if (user == null) {
+            return null;
+        }
+        return toResponseWithCounts(user);
+    }
+
+    @Override
+    public UserDTO updateProfile(long userId, User patch) {
+        User current = userMapper.findById(userId);
+        if (current == null) {
+            throw new BusinessException("用户不存在");
+        }
+        patch.setId(userId);
+        userMapper.updateProfile(patch);
+        return profile(userId);
+    }
+
+    private UserDTO toResponseWithCounts(User user){
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setNickName(user.getNickName());
+        dto.setAvatar(user.getAvatar());
+        dto.setRole(user.getRole());
+        dto.setEmail(user.getEmail());
+        dto.setBio(user.getBio());
+        dto.setQyId(user.getQyId());
+        dto.setGender(user.getGender());
+        dto.setBirthday(user.getBirthday());
+        dto.setSchool(user.getSchool());
+        dto.setTagsJson(user.getTagsJson());
+        dto.setFollowee(userMapper.countFollowee(user.getId()));
+        dto.setFans(userMapper.countFans(user.getId()));
+        return dto;
     }
 
     @Override

@@ -1,11 +1,15 @@
 package com.specialweek.counter.service.impl;
 
+import com.specialweek.counter.mapper.BlogBehaviorRelationMapper;
+import com.specialweek.product.mapper.ProductFavoriteRelationMapper;
 import com.specialweek.counter.schema.BitmapShard;
 import com.specialweek.counter.schema.CounterKeys;
 import com.specialweek.counter.schema.CounterSchema;
 import com.specialweek.counter.service.CounterService;
 import com.specialweek.counter.util.RedisScanUtil;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.aot.hint.annotation.Reflective;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.connection.ReturnType;
 import org.springframework.data.redis.core.RedisCallback;
@@ -26,6 +30,10 @@ public class CounterServiceImpl implements CounterService {
     private final StringRedisTemplate redis;
     private final DefaultRedisScript<Long> toggleScript;
     private final DefaultRedisScript<List> readScript;
+    @Resource
+    private BlogBehaviorRelationMapper relationMapper;
+    @Resource
+    private ProductFavoriteRelationMapper productFavoriteMapper;
 
     public CounterServiceImpl(
             StringRedisTemplate redis,
@@ -57,7 +65,61 @@ public class CounterServiceImpl implements CounterService {
         return toggle(entityType, entityId, userId, "fav", CounterSchema.IDX_FAV, false);
     }
 
-    private boolean toggle(String etype, String eid, long uid, String metric, int idx, boolean add) {
+    /**
+     * 按实体类型更新收藏关系、Redis 状态和收藏页面版本。
+     * @param etype
+     * @param eid
+     * @param uid
+     * @param metric
+     * @param idx
+     * @param add
+     * @return
+     */
+    private boolean toggle(String etype, String eid, long uid,
+                           String metric, int idx, boolean add) {
+        if ("fav".equals(metric)) {
+            long entityId = Long.parseLong(eid);
+            int dbChanged;
+            String versionKey;
+    
+            if ("blog".equals(etype)) {
+                dbChanged = add
+                        ? activateFavorite(uid, entityId)
+                        : relationMapper.cancelFavorite(uid, entityId);
+                versionKey = "feed:myfavs:version:" + uid;
+            } else if ("product".equals(etype)) {
+                dbChanged = add
+                        ? activateProductFavorite(uid, entityId)
+                        : productFavoriteMapper.cancel(uid, entityId);
+                versionKey = "feed:product:myfavs:version:" + uid;
+            } else {
+                throw new IllegalArgumentException("不支持的收藏实体: " + etype);
+            }
+    
+            if (dbChanged != 1) return false;
+            toggleReids(uid, eid, metric, etype, add, idx);
+            redis.opsForValue().increment(versionKey);
+            return true;
+        }
+    
+        return toggleReids(uid, eid, metric, etype, add, idx);
+    }
+    
+    /**
+     * 恢复或创建商品收藏关系。
+     * @param uid
+     * @param productId
+     * @return
+     */
+    private int activateProductFavorite(long uid, long productId) {
+        int restored = productFavoriteMapper.restore(uid, productId);
+        return restored == 1
+                ? 1
+                : productFavoriteMapper.insertIfAbsent(uid, productId);
+    }
+    
+
+    private boolean toggleReids(long uid, String eid, String metric, String etype, boolean add, int idx){
         long chunk = BitmapShard.chunkOf(uid);
         long bit = BitmapShard.bitOf(uid);
         String bmKey = CounterKeys.bitmapKey(metric, etype, eid, chunk);
@@ -67,12 +129,34 @@ public class CounterServiceImpl implements CounterService {
         boolean ok = changed != null && changed == 1L;
         if (ok) {
             long delta = add ? 1L : -1L;
-            // 同步写聚合桶（接入 Kafka 后可改为事件异步聚合）
+            // 同步写聚合桶（接入 Kafka 后可改为事件异步聚合）倒是后改成异步的
             redis.opsForHash().increment(CounterKeys.aggKey(etype, eid), String.valueOf(idx), delta);
-            // 脏版本：MySQL 检查点任务据此同步 tb_blog
+            // 脏版本：MySQL 检查点任务据此同步 tb_blog，到时候改成异步的
             redis.opsForValue().increment(CounterKeys.dirtyKey(etype, eid));
         }
         return ok;
+    }
+
+    /**
+     * 写入点赞事实表
+     * @param uid
+     * @param blogId
+     * @return
+     */
+    private int activateLike(long uid, long blogId) {
+        int restored = relationMapper.restoreLike(uid, blogId);
+        return restored == 1 ? 1 : relationMapper.insertLikeIfAbsent(uid, blogId);
+    }
+
+    /**
+     * 写入收藏事实表
+     * @param uid
+     * @param blogId
+     * @return
+     */
+    private int activateFavorite(long uid, long blogId) {
+        int restored = relationMapper.restoreFavorite(uid, blogId);
+        return restored == 1 ? 1 : relationMapper.insertFavoriteIfAbsent(uid, blogId);
     }
 
     @Override

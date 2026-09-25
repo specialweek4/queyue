@@ -30,7 +30,7 @@
     </select>
 
     <select id="selectCommonFollows" resultType="com.specialweek.user.api.dto.UserDTO">
-        SELECT u.id, u.nick_name AS nickName, u.icon
+        SELECT u.id, u.nick_name AS nickName, u.avatar AS avatar
         FROM tb_follow f1
         JOIN tb_follow f2 ON f2.follow_user_id = f1.follow_user_id
         JOIN tb_user u ON u.id = f1.follow_user_id

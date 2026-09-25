@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.specialweek.product.mapper.ProductFavoriteRelationMapper">
+
+    <update id="restore">
+        UPDATE tb_product_favorite
+        SET state = 1
+        WHERE user_id = #{userId}
+          AND product_id = #{productId}
+          AND state = 0
+    </update>
+
+    <insert id="insertIfAbsent">
+        INSERT IGNORE INTO tb_product_favorite(user_id, product_id, state)
+        VALUES (#{userId}, #{productId}, 1)
+    </insert>
+
+    <update id="cancel">
+        UPDATE tb_product_favorite
+        SET state = 0
+        WHERE user_id = #{userId}
+          AND product_id = #{productId}
+          AND state = 1
+    </update>
+
+    <select id="selectFavoriteProductIds" resultType="long">
+        SELECT f.product_id
+        FROM tb_product_favorite f
+        JOIN tb_product p ON p.id = f.product_id AND p.status = 1
+        JOIN tb_shop s ON s.id = p.shop_id AND s.business_status = 1
+        WHERE f.user_id = #{userId}
+          AND f.state = 1
+        ORDER BY f.update_time DESC, f.id DESC
+        LIMIT #{offset}, #{size}
+    </select>
+</mapper>

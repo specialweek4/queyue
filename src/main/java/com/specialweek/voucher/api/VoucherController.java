@@ -2,7 +2,6 @@ package com.specialweek.voucher.api;
 
 
 import com.specialweek.common.web.Result;
-import com.specialweek.voucher.domain.Voucher;
 import com.specialweek.voucher.service.IVoucherService;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,29 +23,7 @@ public class VoucherController {
     private IVoucherService voucherService;
 
     /**
-     * 新增普通券
-     * @param voucher 优惠券信息
-     * @return 优惠券id
-     */
-    @PostMapping
-    public Result addVoucher(@RequestBody Voucher voucher) {
-        voucherService.save(voucher);
-        return Result.ok(voucher.getId());
-    }
-
-    /**
-     * 新增秒杀券
-     * @param voucher 优惠券信息，包含秒杀信息
-     * @return 优惠券id
-     */
-    @PostMapping("seckill")
-    public Result addSeckillVoucher(@RequestBody Voucher voucher) {
-        voucherService.addSeckillVoucher(voucher);
-        return Result.ok(voucher.getId());
-    }
-
-    /**
-     * 查询店铺的优惠券列表
+     * 查询店铺的优惠券列表（只查询正式且上架、店铺营业中的优惠券）
      * @param shopId 店铺id
      * @return 优惠券列表
      */

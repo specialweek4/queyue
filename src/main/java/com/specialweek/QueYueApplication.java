@@ -10,7 +10,16 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * @since 2026-08-15
  */
 @EnableScheduling
-@MapperScan({"com.specialweek.user.mapper", "com.specialweek.shop.mapper", "com.specialweek.blog.mapper", "com.specialweek.follow.mapper", "com.specialweek.voucher.mapper"})
+@MapperScan({
+        "com.specialweek.user.mapper",
+        "com.specialweek.shop.mapper",
+        "com.specialweek.blog.mapper",
+        "com.specialweek.follow.mapper",
+        "com.specialweek.voucher.mapper",
+        "com.specialweek.product.mapper",
+        "com.specialweek.audit.mapper",
+        "com.specialweek.counter.mapper"
+})
 @SpringBootApplication
 public class QueYueApplication {
 

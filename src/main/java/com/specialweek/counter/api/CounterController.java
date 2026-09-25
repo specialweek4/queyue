@@ -24,6 +24,13 @@ public class CounterController {
         this.counterService = counterService;
     }
 
+    /**
+     * 以前的获得计数的接口，现在改为读取流的时候覆盖的形式，现在也用不到了。
+     * @param entityType
+     * @param entityId
+     * @param metricsStr
+     * @return
+     */
     @GetMapping("/{etype}/{eid}")
     public CountsResponse getCounts(@PathVariable("etype") String entityType,
                                     @PathVariable("eid") String entityId,

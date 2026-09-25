@@ -39,11 +39,11 @@ public class JwtService {
         String refreshTokenId = UUID.randomUUID().toString();
 
         String accessToken = encode(
-                user.getId(), "access", UUID.randomUUID().toString(),
+                user.getId(), user.getRole(), "access", UUID.randomUUID().toString(),
                 issuedAt, accessExpiresAt
         );
         String refreshToken = encode(
-                user.getId(), "refresh", refreshTokenId,
+                user.getId(), user.getRole(), "refresh", refreshTokenId,
                 issuedAt, refreshExpiresAt
         );
 
@@ -67,11 +67,8 @@ public class JwtService {
     }
 
     private String encode(
-            long userId,
-            String tokenType,
-            String tokenId,
-            Instant issuedAt,
-            Instant expiresAt
+            long userId, Integer role, String tokenType, String tokenId,
+            Instant issuedAt, Instant expiresAt
     ) {
         JwsHeader header = JwsHeader.with(SignatureAlgorithm.RS256)
                 .keyId(properties.getKeyId())
@@ -84,6 +81,7 @@ public class JwtService {
                 .issuedAt(issuedAt)
                 .expiresAt(expiresAt)
                 .claim("uid", userId)
+                .claim("role", role == null ? 0 : role)
                 .claim("token_type", tokenType)
                 .build();
 

@@ -2,8 +2,10 @@ package com.specialweek.blog.api;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.specialweek.blog.api.dto.BlogDetailResponse;
 import com.specialweek.blog.api.dto.FeedPageResponse;
 import com.specialweek.blog.domain.Blog;
+import com.specialweek.blog.service.BlogDetailService;
 import com.specialweek.blog.service.BlogFeedService;
 import com.specialweek.blog.service.IBlogService;
 import com.specialweek.common.util.SystemConstants;
@@ -19,6 +21,7 @@ import com.specialweek.storage.OssStorageService;
 import com.specialweek.user.domain.User;
 import com.specialweek.user.service.IUserService;
 import jakarta.annotation.Resource;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -48,21 +51,8 @@ public class BlogController {
     private FollowStateService followStateService;
     @Resource
     private BlogFeedService blogFeedService;
-
-    @PostMapping
-    public Result saveBlog(@RequestBody Blog blog, @AuthenticationPrincipal Jwt jwt) {
-        if (StrUtil.isBlank(blog.getContentObjectKey())) {
-            return Result.fail("请先上传正文");
-        }
-        long userId = Long.parseLong(jwt.getSubject());
-        blog.setUserId(userId);
-        blog.setStatus(1);
-        blog.setPublishTime(LocalDateTime.now());
-        fillDescription(blog);
-        blogService.save(blog);
-        blogFeedService.invalidateFeedRanking();
-        return Result.ok(blog.getId());
-    }
+    @Resource
+    private BlogDetailService blogDetailService;
 
     @PutMapping("/{blogId}/like")
     public Result like(@PathVariable long blogId, @AuthenticationPrincipal Jwt jwt) {
@@ -104,6 +94,10 @@ public class BlogController {
         return Result.ok(new CounterActionResult(blogId, false, changed, count));
     }
 
+    /**
+     * 检查blog是否发布
+     * @param blogId
+     */
     private void requirePublished(long blogId) {
         Blog blog = blogService.getById(blogId);
         if (blog == null || blog.getStatus() == null || blog.getStatus() != 1) {
@@ -130,7 +124,7 @@ public class BlogController {
                                @AuthenticationPrincipal Jwt jwt) {
         Long currentUserId = jwt == null ? null : Long.parseLong(jwt.getSubject());
         FeedPageResponse feed = blogFeedService.getPublicFeed(current, SystemConstants.MAX_PAGE_SIZE, currentUserId);
-        return Result.ok(feed.items());
+        return Result.ok(feed);
     }
 
     @GetMapping("/of/user")
@@ -152,6 +146,13 @@ public class BlogController {
         return Result.ok(records);
     }
 
+    /**
+     * 查看我关注的人的blog
+     * @param lastId
+     * @param offset
+     * @param jwt
+     * @return
+     */
     @GetMapping("/of/follow")
     public Result queryBlogOfFollow(@RequestParam("lastId") Long lastId,
                                     @RequestParam(value = "offset", defaultValue = "0") Integer offset,
@@ -165,41 +166,22 @@ public class BlogController {
         return Result.ok(scroll);
     }
 
+    /**
+     * 获取blog详情页
+     * @param id
+     * @param jwt
+     * @return
+     */
     @GetMapping("/detail/{id}")
-    public Result queryBlogById(@PathVariable("id") Long id, @AuthenticationPrincipal Jwt jwt) {
-        Blog blog = blogService.getById(id);
-        if (blog == null) {
-            return Result.fail("笔记不存在");
-        }
-        Long currentUserId = jwt == null ? null : Long.parseLong(jwt.getSubject());
-        if (blog.getStatus() != 1 && (currentUserId == null || !currentUserId.equals(blog.getUserId()))) {
-            return Result.fail("笔记不存在");
-        }
-        User author = userService.getById(blog.getUserId());
-        blog.setName(author.getNickName());
-        blog.setIcon(author.getIcon());
-
-        if (blog.getStatus() != null && blog.getStatus() == 1) {
-            Map<String, Long> counts = counterService.getCounts("blog", String.valueOf(blog.getId()),
-                    List.of("like", "fav"));
-            blog.setLiked(clampInt(counts.getOrDefault("like", 0L)));
-            blog.setFavorites(clampInt(counts.getOrDefault("fav", 0L)));
-        }
-
-        if (currentUserId == null) {
-            resetUserState(blog);
-        } else {
-            BlogFlags flags = bitmapStateReader.getFlagsBatch(List.of(blog.getId()), currentUserId)
-                    .get(blog.getId());
-            blog.setIsLike(flags != null && flags.liked());
-            blog.setFaved(flags != null && flags.favorited());
-            blog.setFollowed(followStateService.isFollowed(currentUserId, blog.getUserId()));
-        }
-        if (StrUtil.isNotBlank(blog.getContentObjectKey())) {
-            blog.setContentUrl(ossStorageService.publicUrl(blog.getContentObjectKey()));
-        }
-        return Result.ok(blog);
+    public Result queryBlogById(@PathVariable("id") long id,
+                                @AuthenticationPrincipal Jwt jwt) {
+        Long uid = jwt == null ? null : Long.parseLong(jwt.getSubject());
+        BlogDetailResponse detail = blogDetailService.detail(id, uid);
+        return detail == null
+                ? Result.fail("笔记不存在")
+                : Result.ok(detail);
     }
+
 
     @PostMapping("/draft")
     @RateLimiter(
@@ -219,19 +201,33 @@ public class BlogController {
             }
         }
         blog.setUserId(userId);
+        //将blog更改为草稿状态。
         blog.setStatus(0);
         fillDescription(blog);
         if (blog.getId() == null) {
+            //如果是第一次点击保存草稿的话就新建一个blog
             blogService.save(blog);
         } else {
+            invalidateBlogCaches(old);
+            //如果不是第一次点击保存的话更新。
             blogService.updateById(blog);
-            if (old != null && old.getStatus() != null && old.getStatus() == 1) {
-                blogFeedService.invalidateFeedCache(blog.getId());
-                blogFeedService.invalidateFeedRanking();
-            }
+            //这里是如果blog是已发布的内容的话就定向删除一下页面缓存。
+            invalidateBlogCaches(old);
         }
         return Result.ok(blog.getId());
     }
+
+    private void invalidateBlogCaches(Blog old) {
+        if (old == null || old.getId() == null) {
+            return;
+        }
+        blogDetailService.invalidate(old.getId());
+        //如果是发布了就删除定向本地缓存
+        if (Integer.valueOf(1).equals(old.getStatus())) {
+            blogFeedService.invalidateCache(old.getId());
+        }
+    }
+
 
     @PutMapping("/{id}/publish")
     public Result publish(@PathVariable("id") Long id, @AuthenticationPrincipal Jwt jwt) {
@@ -240,10 +236,12 @@ public class BlogController {
         if (blog == null || !blog.getUserId().equals(userId)) {
             return Result.fail("无权操作");
         }
+
+        blogDetailService.invalidate(id);
         blog.setStatus(1);
         blog.setPublishTime(LocalDateTime.now());
         blogService.updateById(blog);
-        blogFeedService.invalidateFeedRanking();
+        blogDetailService.invalidate(id);
         return Result.ok();
     }
 
@@ -251,27 +249,45 @@ public class BlogController {
     public Result delete(@PathVariable("id") long id, @AuthenticationPrincipal Jwt jwt) {
         long userId = Long.parseLong(jwt.getSubject());
         Result result = blogService.delete(userId, id);
-        if (Boolean.TRUE.equals(result.getSuccess())) {
-            blogFeedService.invalidateFeedCache(id);
-            blogFeedService.invalidateFeedRanking();
-        }
         return result;
     }
 
-    @GetMapping("/cleansite")
-    public Result deletelist(@RequestParam(value = "current", defaultValue = "1") Integer current) {
-        Page<Blog> page = blogService.query()
-                .eq("status", 2)
-                .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
-        List<Blog> records = page.getRecords();
-        records.forEach(blog -> {
-            User u = userService.getById(blog.getUserId());
-            blog.setName(u.getNickName());
-            blog.setIcon(u.getIcon());
-        });
-        return Result.ok(records);
+    @GetMapping("/of/myfavs")
+    public Result getMyFavs(@RequestParam(value = "current", defaultValue = "1") Integer current,
+                            @AuthenticationPrincipal Jwt jwt){
+        long userId = Long.parseLong(jwt.getSubject());
+        return blogFeedService.Myfavs(userId, current, SystemConstants.MAX_PAGE_SIZE);
     }
 
+    /**
+     * 回收站
+     * @param current
+     * @return
+     */
+    @GetMapping("/cleansite")
+    public Result deletelist(@RequestParam(value = "current", defaultValue = "1") Integer current,
+                             @AuthenticationPrincipal Jwt jwt) {
+        long userId = Long.parseLong(jwt.getSubject());
+        return Result.ok(blogService.deletelist(userId, current,SystemConstants.MAX_PAGE_SIZE));
+    }
+
+    @DeleteMapping("/cleansite/forever/{blogId}")
+    public Result forever(@PathVariable("blogId") Long blogId,
+                          @AuthenticationPrincipal Jwt jwt){
+        long userId = Long.parseLong(jwt.getSubject());
+        return blogService.blogDeleteForever(blogId, userId);
+    }
+
+    @PutMapping("/cleansite/revive/{blogId}")
+    public Result revive(@PathVariable("blogId") Long blogId,
+                         @AuthenticationPrincipal Jwt jwt){
+        long userId = Long.parseLong(jwt.getSubject());
+        return blogService.revive(blogId, userId);
+    }
+    /**
+     * 获得blog计数
+     * @param blogs
+     */
     private void overlayCounts(List<Blog> blogs) {
         if (blogs == null || blogs.isEmpty()) {
             return;
@@ -294,6 +310,11 @@ public class BlogController {
         });
     }
 
+    /**
+     * 填充用户状
+     * @param blogs
+     * @param userId
+     */
     private void overlayUserState(List<Blog> blogs, long userId) {
         if (blogs == null || blogs.isEmpty()) {
             return;
@@ -311,6 +332,10 @@ public class BlogController {
         });
     }
 
+    /**
+     * 填充作者信息
+     * @param blogs
+     */
     private void overlayAuthorInfo(List<Blog> blogs) {
         if (blogs == null || blogs.isEmpty()) {
             return;
@@ -322,7 +347,7 @@ public class BlogController {
             User u = users.get(b.getUserId());
             if (u != null) {
                 b.setName(u.getNickName());
-                b.setIcon(u.getIcon());
+                b.setIcon(u.getAvatar());
             }
         });
     }
@@ -351,9 +376,34 @@ public class BlogController {
         return (int) Math.max(0L, Math.min(Integer.MAX_VALUE, value));
     }
 
+    /**
+     * blog的简介，用户没有设置的话就是截取正文的前50字
+     * @param blog
+     */
     private void fillDescription(Blog blog) {
         if (StrUtil.isBlank(blog.getDescription()) && StrUtil.isNotBlank(blog.getContentText())) {
             blog.setDescription(StrUtil.subPre(blog.getContentText().trim(), 50));
         }
     }
+
+    //    /**
+//     * 保存blog
+//     * @param blog
+//     * @param jwt
+//     * @return
+//     */
+//    @PostMapping
+//    public Result saveBlog(@RequestBody Blog blog, @AuthenticationPrincipal Jwt jwt) {
+//        if (StrUtil.isBlank(blog.getContentObjectKey())) {
+//            return Result.fail("请先上传正文");
+//        }
+//        long userId = Long.parseLong(jwt.getSubject());
+//        blog.setUserId(userId);
+//        blog.setStatus(1);
+//        blog.setPublishTime(LocalDateTime.now());
+//        fillDescription(blog);
+//        blogService.save(blog);
+//        blogDetailService.invalidate(blog.getId());
+//        return Result.ok(blog.getId());
+//    }
 }

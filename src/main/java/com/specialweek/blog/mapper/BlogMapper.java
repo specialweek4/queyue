@@ -4,6 +4,7 @@ import com.specialweek.blog.domain.Blog;
 import com.specialweek.blog.model.BlogFeedRow;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Param;
+import com.specialweek.blog.model.BlogDetailRow;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,4 +30,14 @@ public interface BlogMapper extends BaseMapper<Blog> {
 
     List<BlogFeedRow> selectHotFeed(@Param("limit") int limit,
                                     @Param("offset") int offset);
+
+    List<BlogFeedRow> selectFeedByIds(@Param("blogIds") List<Long> blogIds);
+
+    /**
+     * 联表查询同时获取blog和作者的信息
+     * @param blogId
+     * @return
+     */
+    BlogDetailRow selectDetailById(@Param("blogId") long blogId);
+
 }

@@ -7,6 +7,7 @@ import lombok.Data;
  */
 @Data
 public class PresignRequest {
+    //使用场景
     private String scene;
     //博客id
     private String postId;

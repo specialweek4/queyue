@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.specialweek.product.mapper.ProductMapper">
+
+    <sql id="productFeedColumns">
+        p.id,
+        p.shop_id AS shopId,
+        p.created_by AS createdBy,
+        p.name,
+        p.description,
+        p.images,
+        p.price,
+        p.stock,
+        p.status,
+        p.create_time AS createTime,
+        p.update_time AS updateTime,
+        p.favorites,
+        u.nick_name AS creatorName,
+        u.avatar AS creatorIcon,
+        s.name AS shopName
+    </sql>
+
+    <select id="selectPublicFeed"
+            resultType="com.specialweek.product.model.ProductFeedRow">
+        SELECT <include refid="productFeedColumns"/>
+        FROM tb_product p
+        JOIN tb_user u ON u.id = p.created_by
+        JOIN tb_shop s ON s.id = p.shop_id
+        WHERE p.status = 1
+          AND s.business_status = 1
+        ORDER BY p.update_time DESC, p.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectFeedByIds"
+            resultType="com.specialweek.product.model.ProductFeedRow">
+        SELECT <include refid="productFeedColumns"/>
+        FROM tb_product p
+        JOIN tb_user u ON u.id = p.created_by
+        JOIN tb_shop s ON s.id = p.shop_id
+        WHERE p.status = 1
+          AND s.business_status = 1
+          AND p.id IN
+        <foreach collection="productIds" item="productId"
+                 open="(" separator="," close=")">
+            #{productId}
+        </foreach>
+    </select>
+
+    <select id="selectPublicDetail"
+            resultType="com.specialweek.product.model.ProductDetailRow">
+        SELECT
+            p.id,
+            p.shop_id AS shopId,
+            p.name,
+            p.description,
+            p.images,
+            p.price,
+            p.stock,
+            p.status,
+            p.create_time AS createTime,
+            p.update_time AS updateTime,
+            s.name AS shopName,
+            s.images AS shopImages,
+            s.address AS shopAddress,
+            s.open_hours AS shopOpenHours
+        FROM tb_product p
+        JOIN tb_shop s ON s.id = p.shop_id
+        WHERE p.id = #{productId}
+          AND p.status = 1
+          AND s.business_status = 1
+        LIMIT 1
+    </select>
+
+    <update id="updateFavoriteCheckpoint">
+        UPDATE tb_product
+        SET favorites = #{favoriteCount}, update_time = update_time
+        WHERE id = #{productId}
+    </update>
+</mapper>

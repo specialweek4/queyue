@@ -13,4 +13,5 @@ public class OssProperties {
     private String accessKeySecret;
     private String bucketName;
     private String publicUrl;
+    private String folder = "avatars"; // 默认上传目录
 }

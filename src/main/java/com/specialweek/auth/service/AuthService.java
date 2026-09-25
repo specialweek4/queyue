@@ -1,6 +1,5 @@
 package com.specialweek.auth.service;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.specialweek.auth.api.dto.LoginRequest;
 import com.specialweek.auth.api.dto.RegisterRequest;
@@ -144,7 +143,19 @@ public class AuthService {
         if (user == null) {
             throw new AuthException("用户不存在");
         }
-        return BeanUtil.copyProperties(user, UserDTO.class);
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setNickName(user.getNickName());
+        dto.setAvatar(user.getAvatar());
+        dto.setRole(user.getRole());
+        dto.setEmail(user.getEmail());
+        dto.setBio(user.getBio());
+        dto.setQyId(user.getQyId());
+        dto.setGender(user.getGender());
+        dto.setBirthday(user.getBirthday());
+        dto.setSchool(user.getSchool());
+        dto.setTagsJson(user.getTagsJson());
+        return dto;
     }
 
     public void resetPassword(ResetPasswordRequest request) {

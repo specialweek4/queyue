@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    <mapper namespace="com.specialweek.counter.mapper.BlogBehaviorRelationMapper">
+        <update id="restoreLike">
+            UPDATE tb_blog_like SET state = 1
+            WHERE user_id = #{userId} AND blog_id = #{blogId} AND state = 0
+        </update>
+        <insert id="insertLikeIfAbsent">
+            INSERT IGNORE INTO tb_blog_like (user_id, blog_id, state)
+            VALUES (#{userId}, #{blogId}, 1)
+        </insert>
+        <update id="cancelLike">
+            UPDATE tb_blog_like SET state = 0
+            WHERE user_id = #{userId} AND blog_id = #{blogId} AND state = 1
+        </update>
+        <update id="restoreFavorite">
+            UPDATE tb_blog_favorite SET state = 1
+            WHERE user_id = #{userId} AND blog_id = #{blogId} AND state = 0
+        </update>
+        <insert id="insertFavoriteIfAbsent">
+            INSERT IGNORE INTO tb_blog_favorite (user_id, blog_id, state)
+            VALUES (#{userId}, #{blogId}, 1)
+        </insert>
+        <update id="cancelFavorite">
+            UPDATE tb_blog_favorite SET state = 0
+            WHERE user_id = #{userId} AND blog_id = #{blogId} AND state = 1
+        </update>
+        <select id="selectLikedBlogIds" resultType="long">
+            SELECT blog_id FROM tb_blog_like
+            WHERE user_id = #{userId} AND state = 1
+            ORDER BY update_time DESC, id DESC
+            LIMIT #{offset}, #{size}
+        </select>
+        <select id="selectFavoriteBlogIds" resultType="long">
+            SELECT blog_id FROM tb_blog_favorite
+            WHERE user_id = #{userId} AND state = 1
+            ORDER BY update_time DESC, id DESC
+            LIMIT #{offset}, #{size}
+        </select>
+    </mapper>

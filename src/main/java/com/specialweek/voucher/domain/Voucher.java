@@ -38,6 +38,10 @@ public class Voucher implements Serializable {
      */
     private Long shopId;
 
+    private Long createdBy;
+
+    private Long productId;
+
     /**
      * 代金券标题
      */

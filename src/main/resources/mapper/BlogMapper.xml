@@ -32,12 +32,58 @@
             b.comments,
             b.publish_time AS publishTime,
             u.nick_name AS name,
-            u.icon
+            u.avatar AS icon
         FROM tb_blog b
         JOIN tb_user u ON u.id = b.user_id
         WHERE b.status = 1
-        ORDER BY b.liked DESC, b.publish_time DESC, b.id DESC
+        ORDER BY b.publish_time DESC, b.id DESC
         LIMIT #{limit} OFFSET #{offset}
+    </select>
+    <select id="selectFeedByIds"
+            resultType="com.specialweek.blog.model.BlogFeedRow">
+        SELECT
+        b.id,
+        b.user_id AS userId,
+        b.title,
+        b.description,
+        b.images,
+        b.cover_url AS coverUrl,
+        b.comments,
+        b.publish_time AS publishTime,
+        u.nick_name AS name,
+        u.avatar AS icon
+        FROM tb_blog b
+        JOIN tb_user u ON u.id = b.user_id
+        WHERE b.status = 1
+        AND b.id IN
+        <foreach collection="blogIds"
+                 item="blogId"
+                 open="("
+                 separator=","
+                 close=")">
+            #{blogId}
+        </foreach>
+    </select>
+    <select id="selectDetailById" resultType="com.specialweek.blog.model.BlogDetailRow">
+        SELECT
+            b.id,
+            b.user_id AS userId,
+            b.title,
+            b.description,
+            b.images,
+            b.cover_url AS coverUrl,
+            b.content_object_key AS contentObjectKey,
+            b.comments,
+            b.status,
+            b.publish_time AS publishTime,
+            b.create_time AS createTime,
+            b.update_time AS updateTime,
+            u.nick_name AS name,
+            u.avatar AS icon
+        FROM tb_blog b
+                 JOIN tb_user u ON u.id = b.user_id
+        WHERE b.id = #{blogId}
+        LIMIT 1
     </select>
 
 </mapper>

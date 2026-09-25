@@ -1,6 +1,8 @@
 package com.specialweek.voucher.service;
 
 import com.specialweek.common.web.Result;
+import com.specialweek.voucher.api.dto.SeckillVoucherCreateRequest;
+import com.specialweek.voucher.api.dto.VoucherCreateRequest;
 import com.specialweek.voucher.domain.Voucher;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -16,5 +18,11 @@ public interface IVoucherService extends IService<Voucher> {
 
     Result queryVoucherOfShop(Long shopId);
 
-    void addSeckillVoucher(Voucher voucher);
+    Result createNormal(long shopId, VoucherCreateRequest request, long userId, int role);
+
+    Result createSeckill(long shopId, SeckillVoucherCreateRequest request, long userId, int role);
+
+    Result listMine(long shopId, long userId, int role);
+
+    Result changeStatus(long voucherId, int status, long userId, int role);
 }

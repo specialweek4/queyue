@@ -7,7 +7,6 @@ import com.specialweek.follow.service.FollowStateService;
 import com.specialweek.follow.service.IFollowService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.specialweek.user.api.dto.UserDTO;
-import com.specialweek.user.mapper.UserInfoMapper;
 import com.specialweek.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,7 +29,6 @@ import java.util.List;
 public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> implements IFollowService {
 
     private final UserMapper userMapper;
-    private final UserInfoMapper userInfoMapper;
     private final FollowStateService followStateService;
 
     @Override
@@ -39,9 +37,6 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
         requireExistingTarget(userId, targetUserId);
         int inserted = baseMapper.insertIgnore(userId, targetUserId);
         if (inserted == 1) {
-            userInfoMapper.ensureRows(userId, targetUserId);
-            userInfoMapper.incrementFollowee(userId);
-            userInfoMapper.incrementFans(targetUserId);
             afterCommitUpdateFollowState(userId, targetUserId, true);
         }
         return new FollowActionResponse(targetUserId, true, inserted == 1);
@@ -53,8 +48,6 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
         requireExistingTarget(userId, targetUserId);
         int deleted = baseMapper.deleteRelation(userId, targetUserId);
         if (deleted == 1) {
-            userInfoMapper.decrementFollowee(userId);
-            userInfoMapper.decrementFans(targetUserId);
             afterCommitUpdateFollowState(userId, targetUserId, false);
         }
         return new FollowActionResponse(targetUserId, false, deleted == 1);
